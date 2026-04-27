@@ -1,0 +1,171 @@
+<!--
+  index.html
+  ========================================================================
+  Landing page for "Who Is The Impostor".
+
+  This is the entry point of the game. It provides a two-step flow:
+    1. Authentication — sign in via Google, Facebook, or email/password.
+    2. Room lobby — after signing in, the user can create a new private
+       room or join an existing one with a 6-character code.
+
+  The page loads app.js as an ES module, which handles all interaction
+  logic, Firebase auth state changes, and room creation / joining.
+  ========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Character encoding and responsive viewport for mobile support -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Who Is The Impostor</title>
+
+  <!-- Google Fonts: Space Grotesk for headings, DM Sans for body text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Global stylesheet shared across landing page and game room -->
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<!-- landing-body applies specific padding and background gradients -->
+<body class="landing-body">
+
+  <!--
+    Main shell: centers the landing content vertically and horizontally.
+    Contains the hero headline and the authentication card.
+  -->
+  <main class="simple-landing-shell">
+
+    <!-- Hero text block: game title, tagline, and short description -->
+    <section class="simple-landing-head">
+      <p class="eyebrow">Realtime party word game</p>
+      <h1>Who Is The Impostor</h1>
+      <p class="hero-text">Sign in first, then create a room or join a code in a clean two-step flow built for mobile.</p>
+    </section>
+
+    <!--
+      ========== AUTHENTICATION PANEL ==========
+      This card lets the user sign in via:
+        - Email & password (sign up or log in)
+        - Google social login
+        - Facebook social login
+
+      The sign-out button is hidden by default (toggled via JS once
+      the user is authenticated). The auth-status-line shows the
+      current sign-in state.
+    -->
+    <section class="panel simple-card auth-step-card">
+      <div class="panel-content simple-card-content">
+        <div class="simple-card-head">
+          <div>
+            <p class="section-label">First Box</p>
+            <h2>Create account</h2>
+          </div>
+          <!-- Hidden until the user is logged in (controlled by JS) -->
+          <button id="sign-out-button" type="button" class="button-ghost hidden">Sign Out</button>
+        </div>
+
+        <!-- Live status line: updates dynamically to show current user name/email -->
+        <div class="auth-status-line">
+          <strong id="auth-display-name">Authentication Required</strong>
+          <span id="auth-display-email">Use Google, Facebook, or email to continue.</span>
+        </div>
+
+        <!-- Email/password authentication form -->
+        <form id="email-auth-form" class="simple-form-grid">
+          <label class="field-group" for="auth-name">
+            <span>Display name</span>
+            <input id="auth-name" name="auth-name" type="text" maxlength="20" placeholder="Your game name" autocomplete="nickname" />
+          </label>
+
+          <label class="field-group" for="auth-email">
+            <span>Email address</span>
+            <input id="auth-email" name="auth-email" type="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+
+          <label class="field-group" for="auth-password">
+            <span>Password</span>
+            <input id="auth-password" name="auth-password" type="password" minlength="6" placeholder="At least 6 characters" autocomplete="current-password" required />
+          </label>
+
+          <div class="button-row compact-row simple-button-stack">
+            <button id="email-sign-up" type="button" class="button-primary">Create Account</button>
+            <button id="email-login" type="button" class="button-secondary">Log In</button>
+          </div>
+        </form>
+
+        <!-- Social login buttons: Google and Facebook OAuth via Firebase -->
+        <div class="social-grid simple-social-grid">
+          <button id="google-login" type="button" class="social-button google-button">
+            <span class="social-mark">G</span>
+            <span>Continue with Google</span>
+          </button>
+          <button id="facebook-login" type="button" class="social-button facebook-button">
+            <span class="social-mark">f</span>
+            <span>Continue with Facebook</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!--
+    ========== ROOM LOBBY MODAL ==========
+    Shown automatically once the user is authenticated.
+    Contains the form to either create a new room or type an
+    existing 6-character room code to join.
+
+    The modal can be dismissed with the Close button or by clicking
+    the semi-transparent backdrop.
+  -->
+  <section id="room-step-modal" class="modal-shell hidden" aria-hidden="true">
+    <!-- Backdrop overlay: clicking it closes the modal -->
+    <div class="modal-backdrop"></div>
+
+    <div id="room-step-card" class="panel simple-card room-step-card">
+      <div class="panel-content simple-card-content">
+        <div class="simple-card-head">
+          <div>
+            <p class="section-label">Second Box</p>
+            <h2>Create or join room</h2>
+          </div>
+          <button id="close-room-step" type="button" class="button-ghost">Close</button>
+        </div>
+
+        <!--
+          Lobby form:
+            - Username: pre-filled from the authenticated display name.
+            - Room code: optional for "Create Room", required for "Join Room".
+            - Feedback area: shows validation or server error messages.
+        -->
+        <form id="lobby-form" class="simple-form-grid">
+          <label class="field-group" for="username">
+            <span>Username</span>
+            <!-- Readonly because the name comes from the auth provider -->
+            <input id="username" name="username" type="text" maxlength="20" placeholder="Sign in to fill your username" autocomplete="nickname" required readonly disabled />
+          </label>
+
+          <label class="field-group" for="roomCode">
+            <span>Room code</span>
+            <input id="roomCode" name="roomCode" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" disabled />
+          </label>
+
+          <!-- Live feedback region for accessibility and user guidance -->
+          <div id="form-feedback" class="feedback" aria-live="polite"></div>
+
+          <div class="button-row simple-button-stack">
+            <button id="create-room" type="button" class="button-primary">Create Room</button>
+            <button id="join-room" type="submit" class="button-secondary">Join Room</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main entry-point JavaScript module: handles auth, room logic, and navigation -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!--
+  room.html
+  ========================================================================
+  Main game room page for "Who Is The Impostor".
+
+  This page uses a phase-based UI system. Each game phase displays a
+  completely different layout so players always understand what is
+  happening and what they should do:
+
+    1. LOBBY    – Players join and the host waits for enough players.
+    2. REVEAL   – Dramatic full-screen role assignment (impostor vs crew).
+    3. PLAY     – Chat-focused interface for clues, defence and discussion.
+    4. VOTING   – Clean, focused voting layout to pick the impostor.
+    5. RESULT   – Elimination reveal, winner announcement, next-round gate.
+
+  Only the active phase section is visible at any time. The room-topbar
+  stays visible across all phases so players always see the room code,
+  their name and the current status badge.
+  ========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Room | Who Is The Impostor</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<body class="room-body">
+
+  <!-- ======================================================================
+       TOP BAR (persistent across all phases)
+       ====================================================================== -->
+  <main class="room-shell">
+    <section class="room-topbar panel">
+      <div>
+        <p class="section-label">Room code</p>
+        <div class="room-code-line">
+          <h1 id="room-code-display">------</h1>
+          <button id="copy-room-code" class="button-ghost" type="button">Copy code</button>
+        </div>
+      </div>
+      <div class="topbar-meta">
+        <div>
+          <p class="section-label">Signed in as</p>
+          <strong id="current-user-display">Player</strong>
+        </div>
+        <div>
+          <p class="section-label">Status</p>
+          <strong id="status-badge" class="status waiting">Waiting</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         PHASE 1 — LOBBY
+         Centered waiting room. Large room code, player roster grid,
+         progress indicator and host-only Start Game button.
+         ====================================================================== -->
+    <section id="phase-lobby" class="phase-section">
+      <div class="phase-lobby panel">
+        <div class="panel-glow"></div>
+        <div class="panel-content">
+          <div class="lobby-head">
+            <p class="section-label">Lobby</p>
+            <h2>Waiting for players</h2>
+            <p class="hero-text">Invite f riends with the room code above. The host can start once at least 3 players have joined.</p>
+          </div>
+
+          <div class="lobby-roster-wrap">
+            <div class="lobby-roster-head">
+              <span class="section-label">Room roster</span>
+              <span id="lobby-player-count" class="count-chip">0 players</span>
+            </div>
+            <ul id="lobby-players-list" class="lobby-players-grid"></ul>
+          </div>
+
+          <div class="lobby-actions">
+            <div id="lobby-progress" class="lobby-progress">At least 3 players required to start.</div>
+            <button id="lobby-start-button" class="button-primary hidden" type="button">Start Game</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         PHASE 2 — ROLE REVEAL
+         Dramatic full-screen moment. Tells the player whether they are the
+         impostor or crew and shows their secret word. Auto-advances after
+         a short countdown so the host does not need to intervene.
+         ====================================================================== -->
+    <section id="phase-role-reveal" class="phase-section hidden">
+      <div class="phase-role-reveal panel">
+        <div class="panel-glow"></div>
+        <div class="panel-content">
+          <div class="reveal-head">
+            <p class="section-label">Round begins</p>
+            <h2>Your role</h2>
+          </div>
+
+          <div class="reveal-card">
+            <div id="reveal-role-badge" class="reveal-badge">CREW</div>
+            <p id="reveal-role-text" class="reveal-role-line">You are a civilian.</p>
+            <p id="reveal-word" class="reveal-word-line">Your word: <strong>—</strong></p>
+            <p id="reveal-hint" class="reveal-hint">Listen carefully to the other players and find the impostor.</p>
+          </div>
+
+          <div class="reveal-countdown">
+            <span class="section-label">Round starts in</span>
+            <div id="reveal-timer" class="reveal-timer">5</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         PHASE 3 — PLAY
+         Chat-optimised layout. Player sidebar on the left, large chat stage
+         on the right. A round timer is shown in the sidebar so players know
+         how much time is left before voting opens.
+         ====================================================================== -->
+    <section id="phase-play" class="phase-section hidden">
+      <div class="phase-play">
+        <!-- Play sidebar: alive players + round timer -->
+        <aside class="panel play-sidebar">
+          <div class="sidebar-head">
+            <div>
+              <p class="section-label">Players</p>
+              <h2>Alive</h2>
+            </div>
+            <span id="play-player-count" class="count-chip">0 players</span>
+          </div>
+          <ul id="play-players-list" class="players-list"></ul>
+
+          <div class="play-timer-card">
+            <p class="section-label">Round timer</p>
+            <div id="play-timer" class="play-timer">—:—</div>
+            <p class="chat-note">Discuss and defend yourself. Voting opens when time is up or the host ends the round.</p>
+          </div>
+
+          <!-- Host-only: end round early -->
+          <div class="host-controls">
+            <button id="play-end-round-button" class="button-secondary hidden" type="button">End Round &amp; Open Voting</button>
+          </div>
+        </aside>
+
+        <!-- Play main: chat -->
+        <section class="panel play-main">
+          <article class="chat-panel">
+            <div class="chat-head">
+              <div>
+                <p class="section-label">Room chat</p>
+                <h2>Discuss carefully</h2>
+              </div>
+              <p class="chat-note">Every message matters. Watch for the impostor.</p>
+            </div>
+            <!--
+              TURN-BASED CHAT SYSTEM
+              Each player gets 10 seconds to send one message.
+              A banner shows whose turn it is. Only the current player
+              can type; everyone else waits for their turn.
+            -->
+            <div class="turn-banner" id="turn-banner">
+              <div class="turn-banner-content">
+                <span class="section-label">Current Turn</span>
+                <strong id="turn-player-name">Waiting...</strong>
+                <span id="turn-countdown" class="turn-countdown">10</span>
+              </div>
+              <p id="turn-instruction" class="turn-instruction">Waiting for the round to begin...</p>
+            </div>
+
+            <div class="chat-stage">
+              <div id="play-chat-messages" class="chat-messages"></div>
+              <form id="play-chat-form" class="chat-form stage-chat-form">
+                <input id="play-chat-input" type="text" maxlength="180" placeholder="Type your clue or defence..." autocomplete="off" disabled />
+                <button type="submit" class="button-primary" id="play-chat-submit" disabled>Send</button>
+              </form>
+            </div>
+          </article>
+        </section>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         PHASE 4 — VOTING
+         Full-focus voting layout. Large player cards that are easy to tap.
+         Live vote progress and a countdown so the phase does not stall.
+         ====================================================================== -->
+    <section id="phase-voting" class="phase-section hidden">
+      <div class="phase-voting panel">
+        <div class="panel-glow"></div>
+        <div class="panel-content">
+          <div class="voting-head">
+            <p class="section-label">Voting Phase</p>
+            <h2>Who is the impostor?</h2>
+            <p class="hero-text">Tap the player you think is lying. Choose wisely — the fate of the crew depends on it.</p>
+          </div>
+
+          <div id="voting-timer-wrap" class="voting-timer-wrap">
+            <span class="section-label">Time remaining</span>
+            <div id="voting-timer" class="voting-timer">30</div>
+          </div>
+
+          <div id="voting-cards" class="voting-cards"></div>
+
+          <div id="voting-live-tally" class="voting-live-tally">
+            <p class="section-label">Live votes</p>
+            <div id="voting-tally-content" class="vote-tally"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         PHASE 5 — RESULT
+         Dramatic results screen. Reveals who was eliminated, whether they
+         were the impostor, the winner, and a gate to the next round.
+         ====================================================================== -->
+    <section id="phase-result" class="phase-section hidden">
+      <div class="phase-result panel">
+        <div class="panel-glow"></div>
+        <div class="panel-content">
+          <div class="result-head">
+            <p class="section-label">Round outcome</p>
+            <h2>Verdict</h2>
+          </div>
+
+          <div class="result-drama">
+            <div id="result-eliminated-badge" class="result-eliminated-badge">Eliminated</div>
+            <h3 id="result-eliminated-name">—</h3>
+            <p id="result-eliminated-role" class="result-role-line">—</p>
+          </div>
+
+          <div class="result-winner">
+            <p id="result-winner-text" class="result-winner-text">—</p>
+            <p id="result-subtext" class="result-subtext">—</p>
+          </div>
+
+          <div class="result-actions">
+            <button id="result-next-round-button" class="button-primary hidden" type="button">Next Round</button>
+            <button id="result-leave-button" class="button-ghost" type="button">Leave Room</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================================
+       TEST ONLY — Next Phase button
+       Fixed on the right edge so you can click through every phase
+       without needing other players or a host.
+       ====================================================================== -->
+  <button id="test-next-phase" class="test-next-phase hidden" type="button" title="Cycle to next phase (test only)">
+    Next Phase →
+  </button>
+
+  <!-- Room controller module: handles presence, game state sync, chat, and voting -->
+  <script type="module" src="./js/room.js"></script>
+</body>
+</html>
+
